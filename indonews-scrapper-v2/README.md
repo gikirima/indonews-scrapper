@@ -21,7 +21,7 @@ Pastikan Anda memiliki Python 3.6 atau versi lebih baru terinstal di sistem Anda
 ## Instalasi
 
 1.  **Clone atau Unduh Proyek**
-    Unduh file skrip (`scraper.py`) dan file `link_scrapping.csv` ke dalam satu direktori yang sama di komputer Anda.
+    Unduh file skrip (`indonews_scrapper_v2.py`) dan file `link_scrapping.csv` ke dalam satu direktori yang sama di komputer Anda.
 
 2.  **Buat File `requirements.txt`**
     Buat sebuah file baru bernama `requirements.txt` di direktori yang sama dan isi dengan daftar pustaka (library) berikut:
@@ -58,9 +58,8 @@ Pastikan Anda memiliki Python 3.6 atau versi lebih baru terinstal di sistem Anda
     Buka terminal atau command prompt di direktori proyek dan jalankan skrip dengan perintah:
 
     ```bash
-    python scraper.py
+    python indonews_scrapper_v2.py
     ```
-    *Catatan: Ganti `scraper.py` dengan nama file skrip Python Anda jika berbeda.*
 
 3.  **Tunggu Proses Selesai**
     Skrip akan menampilkan progress bar saat membaca RSS feed dan saat melakukan scraping artikel.
