@@ -19,6 +19,7 @@ from urllib.parse import urlparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import logging
 from tqdm import tqdm
+import logging
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -144,65 +145,54 @@ def get_article_links_from_rss(file_path):
     logging.info(f"Total {len(article_links)} link artikel unik ditemukan.")
     return list(article_links)
 
-def scrape_article(url):
-    """
-    Melakukan scraping pada satu URL artikel, mengekstrak informasi
-    berdasarkan selector yang telah ditentukan setelah menemukan domain akarnya.
-    """
-    # <<< PERUBAHAN DI SINI >>>
-    # Menggunakan fungsi get_root_domain untuk mencocokkan dengan kunci di SELECTORS
+def scrape_article(url, max_retries=2):
     root_domain = get_root_domain(url)
-
     if not root_domain or root_domain not in SELECTORS:
-        # Pesan ini sekarang akan jarang muncul karena subdomain sudah ditangani
-        # logging.warning(f"Tidak ada selector untuk domain akar: {root_domain} (dari URL: {url})")
         return None
 
-    try:
-        response = requests.get(url, headers=HEADERS, timeout=15)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text, 'html.parser')
-
-        site_selectors = SELECTORS[root_domain]
-
-        # --- Ekstraksi Data ---
-        judul = soup.select_one(site_selectors['judul'])
-        author_raw = soup.select_one(site_selectors['author'])
-        tanggal = soup.select_one(site_selectors['date'])
-
-        author = None
-        # Penanganan khusus untuk author kompas.com
-        if root_domain == 'kompas.com' and site_selectors['author'] == 'div.credit-title-name':
-            author_elements = soup.select(f"{site_selectors['author']} > div")
-            author_text = ' '.join([el.get_text(strip=True) for el in author_elements])
-            author = author_text if author_text else (author_raw.get_text(strip=True) if author_raw else None)
-        else:
-            author = author_raw.get_text(strip=True) if author_raw else None
-
-        # Ekstraksi konten (isi berita)
-        content_container = soup.select(site_selectors['isi'])
-        isi = ''
-        if content_container:
-            paragraphs = content_container.find_all('p', recursive=True)
-            isi = '\n'.join([p.get_text(strip=True) for p in paragraphs if p.get_text(strip=True)])
-
-        # Hanya kembalikan hasil jika judul dan isi berhasil diekstrak
-        if judul and isi:
-            return {
-                'sumber': root_domain, # Menggunakan domain akar sebagai sumber
-                'url': url,
-                'judul': judul.get_text(strip=True),
-                'author': author,
-                'tanggal_publikasi': tanggal.get_text(strip=True) if tanggal else None,
-                'isi_berita': isi,
-            }
-        else:
+    for attempt in range(max_retries + 1):
+        try:
+            response = requests.get(url, headers=HEADERS, timeout=30)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.text, 'html.parser')
+            site_selectors = SELECTORS[root_domain]
+            judul = soup.select_one(site_selectors['judul'])
+            author_raw = soup.select_one(site_selectors['author'])
+            tanggal = soup.select_one(site_selectors['date'])
+            author = None
+            if root_domain == 'kompas.com' and site_selectors['author'] == 'div.credit-title-name':
+                author_elements = soup.select(f"{site_selectors['author']} > div")
+                author_text = ' '.join([el.get_text(strip=True) for el in author_elements])
+                author = author_text if author_text else (author_raw.get_text(strip=True) if author_raw else None)
+            else:
+                author = author_raw.get_text(strip=True) if author_raw else None
+            content_container = soup.select(site_selectors['isi'])
+            isi = ''
+            if content_container:
+                paragraphs = []
+                for container in content_container:
+                    paragraphs.extend(container.find_all('p', recursive=True))
+                isi = '\n'.join([p.get_text(strip=True) for p in paragraphs if p.get_text(strip=True)])
+            if judul and isi:
+                return {
+                    'sumber': root_domain,
+                    'url': url,
+                    'judul': judul.get_text(strip=True),
+                    'author': author,
+                    'tanggal_publikasi': tanggal.get_text(strip=True) if tanggal else None,
+                    'isi_berita': isi,
+                }
+            else:
+                return None
+        except requests.RequestException as e:
+            logging.warning(f"Request error (percobaan {attempt+1}) saat mengakses {url}: {e}")
+            if attempt < max_retries:
+                time.sleep(2)  # Tunggu 2 detik sebelum mencoba lagi
+            else:
+                return None
+        except Exception as e:
+            logging.warning(f"Error lain saat mengakses {url}: {e}")
             return None
-
-    except requests.RequestException:
-        return None
-    except Exception:
-        return None
 
 def main():
     """
