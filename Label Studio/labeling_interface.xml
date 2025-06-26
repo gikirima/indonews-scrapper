@@ -1,0 +1,18 @@
+<View>
+  <Header value="Judul"/>
+  <Text name="judul" value="$judul"/>
+  
+  <Header value="Isi"/>
+  <Text name="isi" value="$isi"/>
+  
+  <View style="margin-top: 2rem; border-top: 1px solid #ccc; padding-top: 1.5rem;">
+    <Header value="Pilihlah label yang tepat dari judul dan isi di atas:"/>
+    
+    <Choices name="clickbait_label" toName="judul,isi" choice="single" showInLine="true">
+      <Choice value="non clickbait"/>
+      <Choice value="teasing"/>
+      <Choice value="exaggeration"/>
+      <Choice value="misleading"/>
+    </Choices>
+  </View>
+</View>
