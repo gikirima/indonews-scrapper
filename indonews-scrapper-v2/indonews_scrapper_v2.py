@@ -180,7 +180,7 @@ def scrape_article(url):
             author = author_raw.get_text(strip=True) if author_raw else None
 
         # Ekstraksi konten (isi berita)
-        content_container = soup.select_one(site_selectors['isi'])
+        content_container = soup.select(site_selectors['isi'])
         isi = ''
         if content_container:
             paragraphs = content_container.find_all('p', recursive=True)
